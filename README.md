@@ -106,3 +106,8 @@ You can configure your browser or system to use `http://localhost:8081` as a pro
 
 > **Warning:**  
 > At this stage, **there is no guarantee of database migration or backward compatibility** between versions—future versions may break compatibility with old database files. Use with caution if you plan to upgrade.
+
+
+## Ethical Use Disclaimer
+
+Puke is designed **strictly for ethical security testing and research purposes**. It is intended to assist security professionals, developers, and organizations in **identifying and remediating vulnerabilities in applications that they own or have explicit permission to test**.
