@@ -1983,6 +1983,30 @@ wheels = [
 ]
 
 [[package]]
+name = "moxy"
+version = "1.0.2"
+source = { editable = "." }
+dependencies = [
+    { name = "browser-use" },
+    { name = "flask", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "flask", version = "3.1.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "flask-cors" },
+    { name = "mitmproxy", version = "11.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "mitmproxy", version = "12.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "openai-agents", version = "0.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
+    { name = "openai-agents", version = "0.6.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version != '3.12.*'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "browser-use" },
+    { name = "flask", specifier = ">=3.0.0" },
+    { name = "flask-cors", specifier = ">=4.0.0" },
+    { name = "mitmproxy" },
+    { name = "openai-agents" },
+]
+
+[[package]]
 name = "msgpack"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2597,30 +2621,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5a/04/1759906c4c5b67b2903f546de234a824d4028ef24eb0b1122daa43376c20/publicsuffix2-2.20191221.tar.gz", hash = "sha256:00f8cc31aa8d0d5592a5ced19cccba7de428ebca985db26ac852d920ddd6fe7b", size = 99592, upload-time = "2019-12-21T11:30:44.863Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/16/053c2945c5e3aebeefb4ccd5c5e7639e38bc30ad1bdc7ce86c6d01707726/publicsuffix2-2.20191221-py2.py3-none-any.whl", hash = "sha256:786b5e36205b88758bd3518725ec8cfe7a8173f5269354641f581c6b80a99893", size = 89033, upload-time = "2019-12-21T11:30:41.744Z" },
-]
-
-[[package]]
-name = "puke"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "browser-use" },
-    { name = "flask", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "flask", version = "3.1.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "flask-cors" },
-    { name = "mitmproxy", version = "11.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "mitmproxy", version = "12.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "openai-agents", version = "0.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "openai-agents", version = "0.6.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version != '3.12.*'" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "browser-use" },
-    { name = "flask", specifier = ">=3.0.0" },
-    { name = "flask-cors", specifier = ">=4.0.0" },
-    { name = "mitmproxy" },
-    { name = "openai-agents" },
 ]
 
 [[package]]

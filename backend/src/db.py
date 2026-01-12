@@ -6,7 +6,7 @@ import re
 
 
 # Main database for project metadata
-MAIN_DATABASE_PATH = 'puke.db'
+MAIN_DATABASE_PATH = 'moxy.db'
 # Directory for project-specific databases
 PROJECTS_DB_DIR = 'projects_data'
 

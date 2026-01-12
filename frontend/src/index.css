@@ -4,7 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
 
-/* Puke Security Tool Design System */
+/* Moxy Security Tool Design System */
 
 @layer base {
   :root {
@@ -44,7 +44,7 @@
 
     --radius: 0.625rem;
 
-    /* Custom Puke variables */
+    /* Custom Moxy variables */
     --mono-font: 'JetBrains Mono', monospace;
     --sans-font: 'Inter', system-ui, sans-serif;
     --logo-font: 'Space Grotesk', system-ui, sans-serif;

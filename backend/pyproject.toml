@@ -1,6 +1,6 @@
 [project]
-name = "puke"
-version = "0.1.0"
+name = "moxy"
+version = "1.0.2"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-puke = "main:main"
+moxy = "main:main"
 
 [tool.uv]
 package = true

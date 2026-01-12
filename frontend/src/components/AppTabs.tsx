@@ -7,6 +7,7 @@ import { ResenderTab } from "./tabs/ResenderTab";
 import { AgentTab } from "./tabs/AgentTab";
 import { useResender } from "@/contexts/ResenderContext";
 import { StatusIndicators } from "./StatusIndicators";
+import { Home, Repeat, Globe, Folder, Bot } from "lucide-react";
 
 export const AppTabs = () => {
   const { tabs, setNavigateCallback } = useResender();
@@ -23,21 +24,23 @@ export const AppTabs = () => {
       <div className="border-b bg-card px-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <img src="/puke.png" alt="Puke" className="h-10 w-auto" />
+            <span className="font-logo text-2xl font-bold text-primary tracking-tight">
+              moxy
+            </span>
           </div>
           <TabsList className="h-12 gap-1 bg-transparent p-0">
             <TabsTrigger 
               value="home" 
               className="data-[state=active]:bg-muted data-[state=active]:shadow-none gap-2 px-4 hover:bg-success/10 transition-colors"
             >
-              <span className="text-base">🏠</span>
+              <Home className="h-4 w-4" />
               Home
             </TabsTrigger>
             <TabsTrigger 
               value="resender" 
               className="data-[state=active]:bg-muted data-[state=active]:shadow-none gap-2 px-4 hover:bg-success/10 transition-colors"
             >
-              <span className="text-base">🔄</span>
+              <Repeat className="h-4 w-4" />
               Resender
               {tabs.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/20 text-primary">
@@ -49,21 +52,21 @@ export const AppTabs = () => {
               value="proxy" 
               className="data-[state=active]:bg-muted data-[state=active]:shadow-none gap-2 px-4 hover:bg-success/10 transition-colors"
             >
-              <span className="text-base">📡</span>
+              <Globe className="h-4 w-4" />
               Proxy
             </TabsTrigger>
             <TabsTrigger 
               value="project" 
               className="data-[state=active]:bg-muted data-[state=active]:shadow-none gap-2 px-4 hover:bg-success/10 transition-colors"
             >
-              <span className="text-base">📁</span>
+              <Folder className="h-4 w-4" />
               Project
             </TabsTrigger>
             <TabsTrigger 
               value="agent" 
               className="data-[state=active]:bg-muted data-[state=active]:shadow-none gap-2 px-4 hover:bg-success/10 transition-colors"
             >
-              <span className="text-base">🤮</span>
+              <Bot className="h-4 w-4" />
               Agent
             </TabsTrigger>
           </TabsList>

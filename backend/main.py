@@ -18,6 +18,11 @@ def create_app():
             "origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8080"],
             "methods": ["GET", "POST", "PUT", "DELETE"],
             "allow_headers": ["Content-Type"]
+        },
+        r"/health": {
+            "origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8080"],
+            "methods": ["GET"],
+            "allow_headers": ["Content-Type"]
         }
     })
     
