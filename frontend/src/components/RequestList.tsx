@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useResender } from "@/contexts/ResenderContext";
+import { generateCurl } from "@/lib/requestTransform";
 
 interface RequestListProps {
   requests: HttpRequest[];
@@ -25,43 +26,6 @@ interface RequestListProps {
   interceptedFlowIds?: string[];
 }
 
-const generateCurl = (request: HttpRequest): string => {
-  const lines = request.raw.split('\n');
-  const methodMatch = lines[0]?.match(/^(\w+)\s+(\S+)/);
-  const method = methodMatch?.[1] || request.method;
-  const path = methodMatch?.[2] || request.path;
-  
-  const headers: string[] = [];
-  let body = '';
-  let inBody = false;
-  
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.trim() === '') {
-      inBody = true;
-      continue;
-    }
-    if (inBody) {
-      body += line;
-    } else {
-      const headerMatch = line.match(/^([^:]+):\s*(.+)$/);
-      if (headerMatch) {
-        headers.push(`-H '${headerMatch[1]}: ${headerMatch[2]}'`);
-      }
-    }
-  }
-  
-  let curl = `curl -X ${method}`;
-  curl += ` 'https://${request.host}${path}'`;
-  headers.forEach(h => {
-    curl += ` \\\n  ${h}`;
-  });
-  if (body) {
-    curl += ` \\\n  -d '${body}'`;
-  }
-  
-  return curl;
-};
 
 export const RequestList = ({ 
   requests, 

@@ -9,9 +9,9 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Inbox, Globe, Shield, Filter, Trash2, Send, AlertCircle, X } from "lucide-react";
+import { Inbox, Globe, Shield, Filter, Trash2, Send, AlertCircle, X, Copy, Check } from "lucide-react";
 import { api, HttpRequest as BackendRequest, Project } from "@/lib/api";
-import { transformRequest, transformResponse } from "@/lib/requestTransform";
+import { transformRequest, transformResponse, generateCurl } from "@/lib/requestTransform";
 import { toast } from "sonner";
 import { useResender } from "@/contexts/ResenderContext";
 
@@ -46,6 +46,7 @@ export const HomeTab = () => {
   const [interceptedFlowIds, setInterceptedFlowIds] = useState<string[]>([]);
   const [editingInterceptedFlow, setEditingInterceptedFlow] = useState<string | null>(null);
   const [editedRequests, setEditedRequests] = useState<Record<string, string>>({});
+  const [requestCopied, setRequestCopied] = useState(false);
   const [filters, setFilters] = useState<RequestFiltersState>({
     hideStaticAssets: false,
     excludedHosts: [],
@@ -72,43 +73,6 @@ export const HomeTab = () => {
     }
   };
 
-  const generateCurl = (request: HttpRequest): string => {
-    const lines = request.raw.split('\n');
-    const methodMatch = lines[0]?.match(/^(\w+)\s+(\S+)/);
-    const method = methodMatch?.[1] || request.method;
-    const path = methodMatch?.[2] || request.path;
-    
-    const headers: string[] = [];
-    let body = '';
-    let inBody = false;
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.trim() === '') {
-        inBody = true;
-        continue;
-      }
-      if (inBody) {
-        body += line;
-      } else {
-        const headerMatch = line.match(/^([^:]+):\s*(.+)$/);
-        if (headerMatch) {
-          headers.push(`-H '${headerMatch[1]}: ${headerMatch[2]}'`);
-        }
-      }
-    }
-    
-    let curl = `curl -X ${method}`;
-    curl += ` 'https://${request.host}${path}'`;
-    headers.forEach(h => {
-      curl += ` \\\n  ${h}`;
-    });
-    if (body) {
-      curl += ` \\\n  -d '${body}'`;
-    }
-    
-    return curl;
-  };
 
   const handleCopyAsCurl = async (request: HttpRequest) => {
     try {
@@ -117,6 +81,26 @@ export const HomeTab = () => {
       toast.success("Copied to clipboard", {
         description: "cURL command copied successfully"
       });
+    } catch (error) {
+      toast.error("Failed to copy", {
+        description: "Could not copy to clipboard",
+      });
+    }
+  };
+
+  const handleCopyRequest = async (request: HttpRequest, flowId?: string | null) => {
+    try {
+      // If intercepted and edited, copy the edited version, otherwise copy raw
+      const contentToCopy = (flowId && editedRequests[flowId]) 
+        ? editedRequests[flowId] 
+        : (request.raw || '');
+      
+      await navigator.clipboard.writeText(contentToCopy);
+      setRequestCopied(true);
+      toast.success("Copied to clipboard", {
+        description: `${contentToCopy.length} characters copied`,
+      });
+      setTimeout(() => setRequestCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy", {
         description: "Could not copy to clipboard",
@@ -655,27 +639,48 @@ export const HomeTab = () => {
                             </span>
                           )}
                         </div>
-                        {isIntercepted && flowId && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDropFlow(flowId)}
-                              className="gap-2 border-red-300 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800"
-                            >
-                              <X className="w-3 h-3" />
-                              Drop
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleForwardFlow(flowId)}
-                              className="gap-2"
-                            >
-                              <Send className="w-3 h-3" />
-                              Forward
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopyRequest(selectedRequest, flowId)}
+                            disabled={!selectedRequest.raw || selectedRequest.raw.length === 0}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {requestCopied ? (
+                              <>
+                                <Check className="w-3 h-3 mr-1" />
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3 mr-1" />
+                                Copy
+                              </>
+                            )}
+                          </Button>
+                          {isIntercepted && flowId && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDropFlow(flowId)}
+                                className="gap-2 border-red-300 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800"
+                              >
+                                <X className="w-3 h-3" />
+                                Drop
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleForwardFlow(flowId)}
+                                className="gap-2"
+                              >
+                                <Send className="w-3 h-3" />
+                                Forward
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="flex-1 overflow-auto">
                         {isIntercepted && flowId ? (

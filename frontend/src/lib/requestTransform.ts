@@ -2,6 +2,74 @@ import { HttpRequest as BackendRequest } from "@/lib/api";
 import { HttpRequest, HttpResponse } from "@/data/demoData";
 
 /**
+ * Generate a cURL command from an HTTP request
+ */
+export function generateCurl(request: HttpRequest): string {
+  const lines = request.raw.split('\n');
+  const methodMatch = lines[0]?.match(/^(\w+)\s+(\S+)/);
+  const method = methodMatch?.[1] || request.method;
+  const pathOrUri = methodMatch?.[2] || request.path;
+  
+  const headers: string[] = [];
+  let body = '';
+  let inBody = false;
+  let hostFromHeader = '';
+  let protocol = 'https'; // Default to HTTPS
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') {
+      inBody = true;
+      continue;
+    }
+    if (inBody) {
+      body += line;
+    } else {
+      const headerMatch = line.match(/^([^:]+):\s*(.+)$/);
+      if (headerMatch) {
+        const headerName = headerMatch[1].toLowerCase();
+        const headerValue = headerMatch[2].trim();
+        
+        if (headerName === 'host') {
+          hostFromHeader = headerValue;
+        }
+        
+        // Don't include Host header in curl (it's part of the URL)
+        if (headerName !== 'host') {
+          headers.push(`-H '${headerMatch[1]}: ${headerValue}'`);
+        }
+      }
+    }
+  }
+  
+  // Determine the URL
+  let url: string;
+  // Check if path is already an absolute URI (starts with http:// or https://)
+  if (pathOrUri.startsWith('http://') || pathOrUri.startsWith('https://')) {
+    url = pathOrUri;
+  } else {
+    // Use host from header if available, otherwise fall back to request.host
+    const host = hostFromHeader || request.host;
+    // Determine protocol from the URI if it was absolute, otherwise default to https
+    if (pathOrUri.startsWith('http://')) {
+      protocol = 'http';
+    }
+    url = `${protocol}://${host}${pathOrUri}`;
+  }
+  
+  let curl = `curl -X ${method}`;
+  curl += ` '${url}'`;
+  headers.forEach(h => {
+    curl += ` \\\n  ${h}`;
+  });
+  if (body) {
+    curl += ` \\\n  -d '${body}'`;
+  }
+  
+  return curl;
+}
+
+/**
  * Parse raw HTTP request string to extract components
  */
 function parseRawRequest(rawRequest: string): {
