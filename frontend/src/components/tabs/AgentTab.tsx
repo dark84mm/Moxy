@@ -338,7 +338,7 @@ export const AgentTab = () => {
             return (
               <div
                 key={messageKey}
-                className={`flex ${
+                className={`flex min-w-0 ${
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
@@ -407,7 +407,7 @@ export const AgentTab = () => {
                   </Card>
                 ) : (
                   <div
-                    className={`max-w-[80%] rounded-lg px-5 py-3 ${
+                    className={`max-w-[80%] min-w-0 rounded-lg px-5 py-3 break-words ${
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-card border border-border shadow-sm"
@@ -415,27 +415,29 @@ export const AgentTab = () => {
                   >
                     {message.role === "assistant" ? (
                       <div
-                        className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:border prose-pre:rounded-md prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:code:bg-transparent prose-pre:code:p-0 prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground"
+                        className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:border prose-pre:rounded-md prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:code:bg-transparent prose-pre:code:p-0 prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground break-words overflow-wrap-anywhere"
                         style={{
                           fontFamily: "var(--sans-font)",
+                          wordBreak: "break-word",
+                          overflowWrap: "anywhere",
                         }}
                       >
                         <ReactMarkdown
                           components={{
                             code: ({ node, inline, className, children, ...props }: any) => {
                               return inline ? (
-                                <code className="text-xs bg-muted px-1 py-0.5 rounded text-foreground" {...props}>
+                                <code className="text-xs bg-muted px-1 py-0.5 rounded text-foreground break-words" {...props}>
                                   {children}
                                 </code>
                               ) : (
-                                <code className="block" {...props}>
+                                <code className="block break-words" {...props}>
                                   {children}
                                 </code>
                               );
                             },
                             pre: ({ children }: any) => {
                               return (
-                                <pre className="bg-muted border rounded-md p-3 overflow-x-auto">
+                                <pre className="bg-muted border rounded-md p-3 overflow-x-auto break-words whitespace-pre-wrap">
                                   {children}
                                 </pre>
                               );
@@ -447,7 +449,11 @@ export const AgentTab = () => {
                       </div>
                     ) : (
                       <div
-                        className={`whitespace-pre-wrap break-words text-sm`}
+                        className={`whitespace-pre-wrap break-words text-sm overflow-wrap-anywhere`}
+                        style={{
+                          wordBreak: "break-word",
+                          overflowWrap: "anywhere",
+                        }}
                       >
                         {message.content}
                       </div>

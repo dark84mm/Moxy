@@ -1,5 +1,5 @@
 """
-API endpoints for agent functionality using OpenAI Responses API.
+API endpoints for agent functionality using OpenAI Completions API.
 """
 from flask import Blueprint, request, jsonify
 from openai import OpenAI
@@ -7,9 +7,8 @@ from .. import db, state, http_sender, proxy_manager, browser_manager
 import json
 import logging
 import os
-import re
 import asyncio
-from browser_use import Agent as BrowserAgent, ChatOpenAI
+from browser_use import Agent as BrowserAgent, ChatOpenAI, ChatOllama
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +18,7 @@ agent_bp = Blueprint('agent', __name__)
 client = None
 def get_openai_client():
     global client
-    if client is None:
-        api_key = os.environ.get('OPENAI_API_KEY')
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-        client = OpenAI(api_key=api_key)
+    client = OpenAI()
     return client
 
 
@@ -163,8 +158,18 @@ async def _browse_async(task: str, additional_tasks: list = None) -> dict:
         # Get or create browser session
         browser = await browser_manager.get_or_create_browser()
         
-        # Create Agent with browser session and LLM
-        llm = ChatOpenAI(model="gpt-5-mini")
+        # Select LLM and agent based on environment variables and BROWSER_USE_OPENAI
+        use_ollama_env = os.environ.get("USE_OLLAMA", "false").lower()
+        use_ollama = use_ollama_env not in ["false", "0", "no"]
+        if use_ollama:
+            llm = ChatOllama(
+                model=os.environ.get("MODEL")
+            )
+        else:
+            llm = ChatOpenAI(
+                model=os.environ.get("MODEL", "gpt-5-mini"),
+            )
+
         agent = BrowserAgent(
             task=task,
             browser_session=browser,
@@ -297,7 +302,7 @@ def delete_chat(chat_id):
 
 @agent_bp.route('/chat', methods=['POST'])
 def chat_with_agent():
-    """Chat with the agent using OpenAI Responses API - processes synchronously and updates DB"""
+    """Chat with the agent using OpenAI Completions API - processes synchronously and updates DB"""
     try:
         data = request.get_json()
         if not data:
@@ -323,168 +328,10 @@ def chat_with_agent():
         
         # Get conversation history from database
         db_messages = db.get_agent_messages(project_id, chat_id)
-        history = []
-        for msg in db_messages:
-            if msg['role'] in ['user', 'assistant']:
-                history.append({
-                    'role': msg['role'],
-                    'content': msg['content']
-                })
+        messages = []
         
-        client = get_openai_client()
-        
-        # Define the tools (Responses API uses flat structure)
-        tools = [
-            {
-                "type": "function",
-                "name": "query_database",
-                "description": """Execute SQL SELECT queries against the HTTP requests database.
-
-Database schema (requests table):
-- id: INTEGER PRIMARY KEY - Unique request ID
-- method: TEXT NOT NULL - HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
-- url: TEXT NOT NULL - Full URL including path (e.g., "https://example.com/api/users")
-- raw_request: TEXT - Full HTTP request as string
-- raw_response: TEXT - Full HTTP response as string  
-- status_code: INTEGER - HTTP response status code (200, 404, 500, etc.)
-- duration_ms: INTEGER - Request duration in milliseconds
-- timestamp: TEXT NOT NULL - Request timestamp in ISO format (e.g., "2024-01-01T12:00:00"), use for ordering
-- completed_at: TEXT - Response completion timestamp in ISO format
-- flow_id: TEXT - Proxy flow identifier
-
-Common query patterns:
-- Filter by method: WHERE method = 'GET'
-- Filter by URL: WHERE url LIKE '%login%'
-- Filter by status: WHERE status_code = 404
-- Order by time: ORDER BY timestamp DESC (newest first) or ORDER BY timestamp ASC (oldest first)
-- Limit results: LIMIT 10
-- Combine filters: WHERE method = 'POST' AND url LIKE '%api%' ORDER BY timestamp DESC LIMIT 5
-
-Examples:
-- "SELECT * FROM requests WHERE method = 'GET' ORDER BY timestamp DESC LIMIT 10"
-- "SELECT * FROM requests WHERE url LIKE '%login%' ORDER BY timestamp DESC LIMIT 5"
-- "SELECT * FROM requests WHERE status_code = 404 ORDER BY timestamp DESC"
-- "SELECT * FROM requests WHERE method = 'POST' AND url LIKE '%api%' ORDER BY timestamp ASC LIMIT 1"
-- "SELECT * FROM requests ORDER BY timestamp ASC LIMIT 1" (first/oldest request)
-- "SELECT * FROM requests ORDER BY timestamp DESC LIMIT 10" (last 10/recent requests)
-
-When user asks for specific requests, construct a SQL SELECT query. Use LIKE for URL searches, = for exact matches (method, status_code). Always use ORDER BY timestamp with appropriate LIMIT.""",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "sql_query": {
-                            "type": "string",
-                            "description": """A SQL SELECT query to execute. Only SELECT queries are allowed.
-Build queries based on what the user asks:
-- User says "GET requests" → SELECT * FROM requests WHERE method = 'GET' ORDER BY timestamp DESC LIMIT 100
-- User says "first request" → SELECT * FROM requests ORDER BY timestamp ASC LIMIT 1
-- User says "last 10 requests" → SELECT * FROM requests ORDER BY timestamp DESC LIMIT 10
-- User says "login requests" → SELECT * FROM requests WHERE url LIKE '%login%' ORDER BY timestamp DESC LIMIT 100
-- User says "POST /api/login" → SELECT * FROM requests WHERE method = 'POST' AND url LIKE '%/api/login%' ORDER BY timestamp DESC LIMIT 100
-- User says "status 404" → SELECT * FROM requests WHERE status_code = 404 ORDER BY timestamp DESC LIMIT 100
-
-Always include ORDER BY timestamp (DESC for newest/recent, ASC for oldest/first) and appropriate LIMIT."""
-                        }
-                    },
-                    "required": ["sql_query"]
-                }
-            },
-            {
-                "type": "function",
-                "name": "send_request",
-                "description": """Send a raw HTTP request to a specified host and port.
-
-This tool allows you to send HTTP requests similar to the resender functionality. You can send GET, POST, PUT, DELETE, PATCH, or any other HTTP method.
-
-The raw_request should be a complete HTTP request string in the following format:
-```
-GET /api/users HTTP/1.1
-Host: example.com
-Content-Type: application/json
-
-[optional body]
-```
-
-For POST/PUT/PATCH requests with a body:
-```
-POST /api/users HTTP/1.1
-Host: example.com
-Content-Type: application/json
-
-{"name": "John", "email": "john@example.com"}
-```
-
-The host, port, and use_https parameters allow you to specify where to send the request.
-- host: The target hostname (e.g., "example.com", "api.example.com")
-- port: The target port (default: "443" for HTTPS, "80" for HTTP)
-- use_https: Whether to use HTTPS (default: True unless port is "80")
-
-Returns the HTTP response including status_code, headers, raw_response, and any error.""",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "raw_request": {
-                            "type": "string",
-                            "description": "The raw HTTP request string. Must include the request line (METHOD PATH HTTP/VERSION), headers, and optional body separated by newlines."
-                        },
-                        "host": {
-                            "type": "string",
-                            "description": "The target hostname (e.g., 'example.com', 'api.example.com'). Default: 'example.com'"
-                        },
-                        "port": {
-                            "type": "string",
-                            "description": "The target port. Default: '443' for HTTPS, '80' for HTTP"
-                        },
-                        "use_https": {
-                            "type": "boolean",
-                            "description": "Whether to use HTTPS. Default: True unless port is '80'"
-                        }
-                    },
-                    "required": ["raw_request"]
-                }
-            },
-            {
-                "type": "function",
-                "name": "browse",
-                "description": """Browse the web using an automated browser.
-
-This tool allows you to control a browser to navigate websites, interact with pages, search for information, and perform various browsing tasks. The browser uses a proxy to capture all HTTP requests and responses.
-
-The tool will automatically:
-- Start the proxy if it's not running
-- Create a browser session if one doesn't exist
-- Execute the browsing task using an AI agent
-
-You can provide a task description and optionally additional tasks to execute sequentially.
-
-Examples:
-- "search for dogs" - Search for dogs on a search engine
-- "go to example.com and click the login button"
-- "navigate to https://example.com and fill out the contact form"
-
-Returns status and result message.""",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task": {
-                            "type": "string",
-                            "description": "The browsing task to execute. Describe what you want the browser to do, e.g., 'search for dogs', 'go to example.com', 'click the login button'"
-                        },
-                        "additional_tasks": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
-                            "description": "Optional list of additional tasks to execute sequentially after the initial task"
-                        }
-                    },
-                    "required": ["task"]
-                }
-            }
-        ]
-        
-        # Instructions (system message equivalent)
-        instructions = """You are a helpful DAST tool for cybersecurity professionals that can query a database of HTTP requests using SQL, send HTTP requests, and browse the web.
+        # Add system message
+        system_message = """You are a helpful DAST tool for cybersecurity professionals that can query a database of HTTP requests using SQL, send HTTP requests, and browse the web.
 
 You have three main capabilities:
 
@@ -556,32 +403,177 @@ You have three main capabilities:
 AFTER YOU BROWSE, THE PACKETS WILL BE STORED IN THE DATABASE. YOU CAN QUERY THE DATABASE TO GET THE PACKETS.
 After executing queries, sending requests, or browsing, analyze results and provide clear summaries."""
         
-        # Build input list from history + current message
-        input_list = []
-        
-        # Add previous messages from history
-        for msg in history:
-            role = msg.get('role', '')
-            content = msg.get('content', '')
-            if role == 'user' and content:
-                input_list.append({
-                    "role": "user",
-                    "content": [{"type": "input_text", "text": content}]
-                })
-            elif role == 'assistant' and content:
-                input_list.append({
-                    "type": "message",
-                    "role": "assistant",
-                    "content": [{"type": "output_text", "text": content}]
-                })
-        
-        # Add current message
-        input_list.append({
-            "role": "user",
-            "content": [{"type": "input_text", "text": message}]
+        messages.append({
+            'role': 'system',
+            'content': system_message
         })
         
-        final_content = ""
+        # Add conversation history (only user and assistant messages, skip tool messages)
+        for msg in db_messages:
+            if msg['role'] in ['user', 'assistant']:
+                messages.append({
+                    'role': msg['role'],
+                    'content': msg['content']
+                })
+        
+        client = get_openai_client()
+        
+        # Define the tools (Completions API format)
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "query_database",
+                    "description": """Execute SQL SELECT queries against the HTTP requests database.
+
+Database schema (requests table):
+- id: INTEGER PRIMARY KEY - Unique request ID
+- method: TEXT NOT NULL - HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+- url: TEXT NOT NULL - Full URL including path (e.g., "https://example.com/api/users")
+- raw_request: TEXT - Full HTTP request as string
+- raw_response: TEXT - Full HTTP response as string  
+- status_code: INTEGER - HTTP response status code (200, 404, 500, etc.)
+- duration_ms: INTEGER - Request duration in milliseconds
+- timestamp: TEXT NOT NULL - Request timestamp in ISO format (e.g., "2024-01-01T12:00:00"), use for ordering
+- completed_at: TEXT - Response completion timestamp in ISO format
+- flow_id: TEXT - Proxy flow identifier
+
+Common query patterns:
+- Filter by method: WHERE method = 'GET'
+- Filter by URL: WHERE url LIKE '%login%'
+- Filter by status: WHERE status_code = 404
+- Order by time: ORDER BY timestamp DESC (newest first) or ORDER BY timestamp ASC (oldest first)
+- Limit results: LIMIT 10
+- Combine filters: WHERE method = 'POST' AND url LIKE '%api%' ORDER BY timestamp DESC LIMIT 5
+
+Examples:
+- "SELECT * FROM requests WHERE method = 'GET' ORDER BY timestamp DESC LIMIT 10"
+- "SELECT * FROM requests WHERE url LIKE '%login%' ORDER BY timestamp DESC LIMIT 5"
+- "SELECT * FROM requests WHERE status_code = 404 ORDER BY timestamp DESC"
+- "SELECT * FROM requests WHERE method = 'POST' AND url LIKE '%api%' ORDER BY timestamp ASC LIMIT 1"
+- "SELECT * FROM requests ORDER BY timestamp ASC LIMIT 1" (first/oldest request)
+- "SELECT * FROM requests ORDER BY timestamp DESC LIMIT 10" (last 10/recent requests)
+
+When user asks for specific requests, construct a SQL SELECT query. Use LIKE for URL searches, = for exact matches (method, status_code). Always use ORDER BY timestamp with appropriate LIMIT.""",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sql_query": {
+                                "type": "string",
+                                "description": """A SQL SELECT query to execute. Only SELECT queries are allowed.
+Build queries based on what the user asks:
+- User says "GET requests" → SELECT * FROM requests WHERE method = 'GET' ORDER BY timestamp DESC LIMIT 100
+- User says "first request" → SELECT * FROM requests ORDER BY timestamp ASC LIMIT 1
+- User says "last 10 requests" → SELECT * FROM requests ORDER BY timestamp DESC LIMIT 10
+- User says "login requests" → SELECT * FROM requests WHERE url LIKE '%login%' ORDER BY timestamp DESC LIMIT 100
+- User says "POST /api/login" → SELECT * FROM requests WHERE method = 'POST' AND url LIKE '%/api/login%' ORDER BY timestamp DESC LIMIT 100
+- User says "status 404" → SELECT * FROM requests WHERE status_code = 404 ORDER BY timestamp DESC LIMIT 100
+
+Always include ORDER BY timestamp (DESC for newest/recent, ASC for oldest/first) and appropriate LIMIT."""
+                            }
+                        },
+                        "required": ["sql_query"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "send_request",
+                    "description": """Send a raw HTTP request to a specified host and port.
+
+This tool allows you to send HTTP requests similar to the resender functionality. You can send GET, POST, PUT, DELETE, PATCH, or any other HTTP method.
+
+The raw_request should be a complete HTTP request string in the following format:
+```
+GET /api/users HTTP/1.1
+Host: example.com
+Content-Type: application/json
+
+[optional body]
+```
+
+For POST/PUT/PATCH requests with a body:
+```
+POST /api/users HTTP/1.1
+Host: example.com
+Content-Type: application/json
+
+{"name": "John", "email": "john@example.com"}
+```
+
+The host, port, and use_https parameters allow you to specify where to send the request.
+- host: The target hostname (e.g., "example.com", "api.example.com")
+- port: The target port (default: "443" for HTTPS, "80" for HTTP)
+- use_https: Whether to use HTTPS (default: True unless port is "80")
+
+Returns the HTTP response including status_code, headers, raw_response, and any error.""",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "raw_request": {
+                                "type": "string",
+                                "description": "The raw HTTP request string. Must include the request line (METHOD PATH HTTP/VERSION), headers, and optional body separated by newlines."
+                            },
+                            "host": {
+                                "type": "string",
+                                "description": "The target hostname (e.g., 'example.com', 'api.example.com'). Default: 'example.com'"
+                            },
+                            "port": {
+                                "type": "string",
+                                "description": "The target port. Default: '443' for HTTPS, '80' for HTTP"
+                            },
+                            "use_https": {
+                                "type": "boolean",
+                                "description": "Whether to use HTTPS. Default: True unless port is '80'"
+                            }
+                        },
+                        "required": ["raw_request"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "browse",
+                    "description": """Browse the web using an automated browser.
+
+This tool allows you to control a browser to navigate websites, interact with pages, search for information, and perform various browsing tasks. The browser uses a proxy to capture all HTTP requests and responses.
+
+The tool will automatically:
+- Start the proxy if it's not running
+- Create a browser session if one doesn't exist
+- Execute the browsing task using an AI agent
+
+You can provide a task description and optionally additional tasks to execute sequentially.
+
+Examples:
+- "search for dogs" - Search for dogs on a search engine
+- "go to example.com and click the login button"
+- "navigate to https://example.com and fill out the contact form"
+
+Returns status and result message.""",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "task": {
+                                "type": "string",
+                                "description": "The browsing task to execute. Describe what you want the browser to do, e.g., 'search for dogs', 'go to example.com', 'click the login button'"
+                            },
+                            "additional_tasks": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "description": "Optional list of additional tasks to execute sequentially after the initial task"
+                            }
+                        },
+                        "required": ["task"]
+                    }
+                }
+            }
+        ]
+        
         max_iterations = 10  # Safety limit
         iteration = 0
         
@@ -589,38 +581,54 @@ After executing queries, sending requests, or browsing, analyze results and prov
         while iteration < max_iterations:
             iteration += 1
             
-            # Call OpenAI Responses API
-            response = client.responses.create(
-                model="gpt-5-mini",
-                instructions=instructions,
+            # Call OpenAI Completions API with model from environment variable
+            model = os.environ.get("MODEL", "gpt-5-mini")
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
                 tools=tools,
-                input=input_list,
+                tool_choice="auto",
             )
+            # Get the assistant's message from the response
+            assistant_message = response.choices[0].message
             
-            # Add response output to input list for next iteration
-            input_list += response.output
+            # Build assistant message dict for messages list
+            assistant_msg_dict = {
+                'role': 'assistant',
+                'content': assistant_message.content
+            }
+            # Include tool_calls if present
+            if assistant_message.tool_calls:
+                assistant_msg_dict['tool_calls'] = [
+                    {
+                        'id': tc.id,
+                        'type': tc.type,
+                        'function': {
+                            'name': tc.function.name,
+                            'arguments': tc.function.arguments
+                        }
+                    }
+                    for tc in assistant_message.tool_calls
+                ]
+            
+            # Add assistant message to messages list
+            messages.append(assistant_msg_dict)
             
             # Check for tool calls
-            tool_calls = [item for item in response.output if item.type == "function_call"]
+            tool_calls = assistant_message.tool_calls if assistant_message.tool_calls else []
             
             if not tool_calls:
-                # No more tool calls, extract final text output
-                text_outputs = [item for item in response.output if item.type == "message"]
-                if text_outputs:
-                    # Get text content from message
-                    for text_item in text_outputs:
-                        if hasattr(text_item, 'content') and text_item.content:
-                            for content_item in text_item.content:
-                                if hasattr(content_item, 'text'):
-                                    final_content = content_item.text
-                                    # Save assistant message to database
-                                    db.add_agent_message(project_id, chat_id, 'assistant', final_content)
+                # No more tool calls, extract final text content
+                final_content = assistant_message.content or ""
+                if final_content:
+                    # Save assistant message to database
+                    db.add_agent_message(project_id, chat_id, 'assistant', final_content)
                 break  # Done, exit loop
             
             # Process tool calls
             for tool_call in tool_calls:
-                tool_name = tool_call.name
-                tool_args_str = tool_call.arguments if hasattr(tool_call, 'arguments') else '{}'
+                tool_name = tool_call.function.name
+                tool_args_str = tool_call.function.arguments
                 try:
                     tool_args = json.loads(tool_args_str) if isinstance(tool_args_str, str) else tool_args_str
                 except:
@@ -685,11 +693,11 @@ After executing queries, sending requests, or browsing, analyze results and prov
                     tool_output=tool_output
                 )
                 
-                # Add tool result to input list
-                input_list.append({
-                    "type": "function_call_output",
-                    "call_id": tool_call.call_id,
-                    "output": json.dumps(tool_output)
+                # Add tool result to messages list (Completions API format)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(tool_output)
                 })
         
         # Return chat_id

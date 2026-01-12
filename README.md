@@ -5,7 +5,7 @@
 </div>
 
 Moxy (Next-Gen Man in the middle proxy)
-Open-source DAST tool for pentesting powered by agentic AI capabilities. Built on top of browser-use, Moxy streamlines dynamic application security testing.
+Open-source DAST tool for pentesting powered by agentic AI capabilities (Supporting Ollama). Built on top of browser-use, Moxy streamlines dynamic application security testing.
 
 🚀  **INSANELY EASY TO USE**
 
@@ -63,14 +63,30 @@ and the backend runs at [http://localhost:5000](http://localhost:5000)
 
 ## Agentic Tool
 
-By default, Moxy works without requiring any AI configuration or credentials—even browser-based DAST flows don't use AI unless enabled.
+By default, Moxy works without requiring any AI configuration or credentials - even browser-based DAST flows don't use AI unless enabled.
 
-### Enabling Agentic AI (OpenAI)
+### Enabling Agentic AI
 
-To use the AI-powered agentic features, add an `.env` file to the `backend` directory containing your OpenAI API key:
+Moxy supports both **OpenAI's API** and **Ollama** (local AI) for agentic features. To enable AI-powered capabilities, create an `.env` file in the `backend` directory with the appropriate configuration.
 
+#### Option 1: Using OpenAI API
+
+For cloud-based AI processing with OpenAI, configure your `.env` file as follows:
+
+```env
+OPENAI_API_KEY=sk-proj-...             # Your OpenAI API key
+MODEL=gpt-4o-mini                       # Optional: defaults to gpt-4o-mini if not specified
 ```
-OPENAI_API_KEY=sk-proj
+
+#### Option 2: Using Ollama (Local AI)
+
+For local AI processing with Ollama, configure your `.env` file as follows:
+
+```env
+USE_OLLAMA=true
+OPENAI_API_KEY=test                    # Required but value is ignored when using Ollama
+OPENAI_BASE_URL=http://localhost:11434/v1/  # Ollama API endpoint
+MODEL=qwen3:8b                         # Your preferred Ollama model
 ```
 
 **Capabilities of the Agent:**
