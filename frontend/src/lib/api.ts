@@ -348,6 +348,13 @@ class ApiClient {
     const data = await response.json();
     return data.chat_id || 0;
   }
+
+  async resenderAgent(text: string): Promise<string> {
+    return this.request<{ text: string }>('/api/agent/resender_agent', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }).then(data => data.text);
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);
