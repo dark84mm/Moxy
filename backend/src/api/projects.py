@@ -219,3 +219,55 @@ def export_project_database(project_id):
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@projects_bp.route('/import', methods=['POST'])
+def import_project():
+    """Import a project database file"""
+    try:
+        # Check if file is in request
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Validate file extension
+        if not file.filename.endswith('.db'):
+            return jsonify({'error': 'File must be a .db file'}), 400
+        
+        # Get optional project name from form data
+        project_name = request.form.get('project_name', None)
+        
+        # Save uploaded file temporarily
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as tmp_file:
+            file.save(tmp_file.name)
+            temp_path = tmp_file.name
+        
+        try:
+            # Import the database
+            project = db.import_project_database(temp_path, project_name)
+            return jsonify({
+                'message': 'Project imported successfully',
+                'project': project
+            }), 201
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@projects_bp.route('/available-databases', methods=['GET'])
+def list_available_databases():
+    """List all available .db files in projects_data directory"""
+    try:
+        databases = db.list_available_databases()
+        return jsonify(databases), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

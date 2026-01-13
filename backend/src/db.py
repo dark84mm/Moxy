@@ -6,12 +6,14 @@ import re
 
 
 # Main database for project metadata
-MAIN_DATABASE_PATH = 'moxy.db'
 # Directory for project-specific databases
 PROJECTS_DB_DIR = 'projects_data'
 
 # Ensure projects directory exists
 os.makedirs(PROJECTS_DB_DIR, exist_ok=True)
+
+# Main database is now also in projects_data
+MAIN_DATABASE_PATH = os.path.join(PROJECTS_DB_DIR, 'moxy.db')
 
 
 def sanitize_filename(name):
@@ -46,8 +48,73 @@ def get_db(db_path=None):
         conn.close()
 
 
+def list_available_databases():
+    """List all .db files in projects_data directory (excluding moxy.db)"""
+    if not os.path.exists(PROJECTS_DB_DIR):
+        return []
+    
+    db_files = []
+    for filename in os.listdir(PROJECTS_DB_DIR):
+        if filename.endswith('.db') and filename != 'moxy.db':
+            filepath = os.path.join(PROJECTS_DB_DIR, filename)
+            if os.path.isfile(filepath):
+                # Extract project name from filename (remove .db extension)
+                project_name = filename[:-3]  # Remove .db
+                db_files.append({
+                    'filename': filename,
+                    'path': filepath,
+                    'project_name': project_name,
+                    'size': os.path.getsize(filepath)
+                })
+    return db_files
+
+
+def import_project_database(file_path, project_name=None):
+    """Import a database file into projects_data directory"""
+    if not os.path.exists(file_path):
+        raise ValueError(f"File not found: {file_path}")
+    
+    # If no project name provided, derive from filename
+    if project_name is None:
+        filename = os.path.basename(file_path)
+        if filename.endswith('.db'):
+            project_name = filename[:-3]
+        else:
+            project_name = filename
+    
+    # Sanitize project name for filename
+    sanitized_name = sanitize_filename(project_name)
+    target_path = os.path.join(PROJECTS_DB_DIR, f'{sanitized_name}.db')
+    
+    # Check if project with this name already exists
+    existing_project = get_project_by_name(project_name)
+    if existing_project:
+        raise ValueError(f"Project with name '{project_name}' already exists")
+    
+    # Check if database file already exists
+    if os.path.exists(target_path):
+        raise ValueError(f"Database file '{sanitized_name}.db' already exists in projects_data")
+    
+    # Copy the file to projects_data
+    import shutil
+    shutil.copy2(file_path, target_path)
+    
+    # Create new project entry in main database
+    # Project-specific databases don't have a projects table, so we create the entry here
+    return create_project(name=project_name, description='')
+
+
 def init_db():
     """Initialize the database with required tables"""
+    # List available databases in projects_data for reference
+    available_dbs = list_available_databases()
+    if available_dbs:
+        print(f"📁 Found {len(available_dbs)} database file(s) in projects_data:")
+        for db_info in available_dbs:
+            size_kb = db_info['size'] / 1024
+            print(f"   - {db_info['filename']} ({size_kb:.1f} KB)")
+        print("   You can import these by copying them to projects_data or using the import endpoint.")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''

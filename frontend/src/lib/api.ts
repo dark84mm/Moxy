@@ -142,6 +142,32 @@ class ApiClient {
     return response.blob();
   }
 
+  async importProject(file: File, projectName?: string): Promise<Project> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (projectName) {
+      formData.append('project_name', projectName);
+    }
+
+    const url = `${this.baseUrl}/api/projects/import`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.project;
+  }
+
+  async getAvailableDatabases(): Promise<Array<{ filename: string; path: string; project_name: string; size: number }>> {
+    return this.request<Array<{ filename: string; path: string; project_name: string; size: number }>>('/api/projects/available-databases');
+  }
+
   // Request endpoints (per project)
   async getProjectRequests(projectId: number, limit?: number): Promise<HttpRequest[]> {
     const params = limit ? `?limit=${limit}` : '';

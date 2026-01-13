@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FolderPlus, FolderOpen, Download, Trash2, Plus, RefreshCw } from "lucide-react";
+import { FolderPlus, FolderOpen, Download, Trash2, Plus, RefreshCw, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api, Project, HttpRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -23,9 +23,12 @@ export const ProjectTab = () => {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [requests, setRequests] = useState<HttpRequest[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isAddRequestDialogOpen, setIsAddRequestDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [importProjectName, setImportProjectName] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [newRequestMethod, setNewRequestMethod] = useState("GET");
   const [newRequestUrl, setNewRequestUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -286,6 +289,64 @@ export const ProjectTab = () => {
     }
   };
 
+  const handleImportProject = async () => {
+    if (!importFile) {
+      toast({
+        title: "Error",
+        description: "Please select a database file to import",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const project = await api.importProject(
+        importFile,
+        importProjectName.trim() || undefined
+      );
+      
+      setProjects([project, ...projects]);
+      setCurrentProject(project);
+      setIsImportDialogOpen(false);
+      setImportFile(null);
+      setImportProjectName("");
+      
+      toast({
+        title: "Success",
+        description: `Project "${project.name}" imported successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to import project: ${error}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.db')) {
+        toast({
+          title: "Error",
+          description: "Please select a .db file",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImportFile(file);
+      // Auto-fill project name from filename if not already set
+      if (!importProjectName) {
+        const nameFromFile = file.name.replace(/\.db$/i, '');
+        setImportProjectName(nameFromFile);
+      }
+    }
+  };
+
   return (
     <div className="h-full p-4 overflow-auto">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -298,7 +359,7 @@ export const ProjectTab = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <Button 
                 variant="outline" 
                 className="h-24 flex-col gap-2 hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-colors"
@@ -306,6 +367,14 @@ export const ProjectTab = () => {
               >
                 <FolderPlus className="w-6 h-6 text-primary hover:text-primary" />
                 <span>New Project</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-24 flex-col gap-2 hover:bg-primary/10 hover:border-primary/50 hover:text-foreground transition-colors"
+                onClick={() => setIsImportDialogOpen(true)}
+              >
+                <Upload className="w-6 h-6 text-primary hover:text-primary" />
+                <span>Import Project</span>
               </Button>
               <Button 
                 variant="outline" 
@@ -445,6 +514,62 @@ export const ProjectTab = () => {
             </Button>
             <Button onClick={handleCreateProject} disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Project"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Project Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Project</DialogTitle>
+            <DialogDescription>
+              Import a project database file from projects_data or upload a .db file
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="import-file">Database File (.db) *</Label>
+              <Input
+                id="import-file"
+                type="file"
+                accept=".db"
+                onChange={handleFileSelect}
+              />
+              {importFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {importFile.name} ({(importFile.size / 1024).toFixed(1)} KB)
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="import-name">Project Name (optional)</Label>
+              <Input
+                id="import-name"
+                placeholder="Leave empty to use filename"
+                value={importProjectName}
+                onChange={(e) => setImportProjectName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                If not provided, the project name will be derived from the filename
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsImportDialogOpen(false);
+                setImportFile(null);
+                setImportProjectName("");
+              }}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleImportProject} disabled={isLoading || !importFile}>
+              {isLoading ? "Importing..." : "Import Project"}
             </Button>
           </DialogFooter>
         </DialogContent>
