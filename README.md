@@ -25,6 +25,16 @@ And it's free, who doesn't like free stuff?
 
 To run this for now, you need to run the frontend and backend separately.
 
+### Prerequisites
+
+Before running Moxy, you need to install **`uv`** (astral-uv), a fast Python package installer and resolver.
+
+**Install `uv`:**
+- Follow the [official installation guide](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer) to install `uv` on your system.
+
+> **Note:**  
+> `uv` is required for managing Python dependencies in the backend. If you don't have it installed, the backend commands will fail.
+
 ### Running the Backend
 
 1. **Navigate to the backend directory:**
@@ -32,7 +42,7 @@ To run this for now, you need to run the frontend and backend separately.
    cd backend
    ```
 
-2. **Run the backend server:**
+2. **Install dependencies and run the backend server:**
    ```sh
    uv sync
    uv run moxy
