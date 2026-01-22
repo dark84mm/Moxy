@@ -263,6 +263,11 @@ export const ResenderTab = () => {
                           isCompact ? "w-14 text-xs" : "w-20 text-sm"
                         )}
                         onClick={(e) => e.stopPropagation()}
+                        spellCheck="false"
+                        autoComplete="off"
+                        data-gramm="false"
+                        data-gramm_editor="false"
+                        data-enable-grammarly="false"
                       />
                     ) : (
                       <span className="truncate max-w-20">{tab.name}</span>
@@ -342,6 +347,11 @@ export const ResenderTab = () => {
                 onKeyDown={handleHostKeyDown}
                 placeholder="Host"
                 className="w-48 h-9 font-mono text-sm"
+                spellCheck="false"
+                autoComplete="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
               <span className="text-muted-foreground">:</span>
               <Input 
@@ -352,6 +362,11 @@ export const ResenderTab = () => {
                 onKeyDown={handlePortKeyDown}
                 placeholder="Port"
                 className="w-20 h-9 font-mono text-sm"
+                spellCheck="false"
+                autoComplete="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
             </div>
             <Button 
@@ -439,6 +454,11 @@ export const ResenderTab = () => {
                                 }
                               }
                             }}
+                            spellCheck="false"
+                            autoComplete="off"
+                            data-gramm="false"
+                            data-gramm_editor="false"
+                            data-enable-grammarly="false"
                           />
                           <div className="flex justify-end gap-2">
                             <Button
@@ -473,6 +493,11 @@ export const ResenderTab = () => {
                 onChange={(e) => updateTabRequest(activeTab.id, e.target.value)}
                 className="flex-1 resize-none border-0 rounded-none font-mono text-sm bg-transparent focus-visible:ring-0"
                 placeholder="Edit your request here..."
+                spellCheck="false"
+                autoComplete="off"
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
               />
             </div>
 

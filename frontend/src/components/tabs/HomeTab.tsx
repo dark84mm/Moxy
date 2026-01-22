@@ -934,6 +934,11 @@ export const HomeTab = () => {
                               }}
                               className="flex-1 resize-none border-0 rounded-none font-mono text-sm bg-transparent focus-visible:ring-0 h-full min-h-0"
                               placeholder="Edit your request here..."
+                              spellCheck="false"
+                              autoComplete="off"
+                              data-gramm="false"
+                              data-gramm_editor="false"
+                              data-enable-grammarly="false"
                             />
                           ) : showRawRequest ? (
                             // Raw view mode
