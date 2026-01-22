@@ -25,6 +25,7 @@ interface RequestListProps {
   onIncludeHost?: (host: string) => void;
   interceptedFlowIds?: string[];
   startNumber?: number; // Starting number for ordering (for pagination)
+  onDelete?: (requestId: string) => void;
 }
 
 
@@ -35,7 +36,8 @@ export const RequestList = ({
   onExcludeHost,
   onIncludeHost,
   interceptedFlowIds = [],
-  startNumber = 1
+  startNumber = 1,
+  onDelete
 }: RequestListProps) => {
   const { addTab, navigateToResender } = useResender();
 
@@ -191,7 +193,14 @@ export const RequestList = ({
                 
                 <ContextMenuSeparator className="bg-border/50" />
                 
-                <ContextMenuItem className="gap-3 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <ContextMenuItem 
+                  onClick={() => {
+                    if (onDelete) {
+                      onDelete(request.id);
+                    }
+                  }}
+                  className="gap-3 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete Request</span>
                 </ContextMenuItem>

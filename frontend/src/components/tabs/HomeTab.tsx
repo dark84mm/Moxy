@@ -148,6 +148,47 @@ export const HomeTab = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, requests, addTab, navigateToResender]);
 
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!currentProject) return;
+    
+    const request = requests.find(r => r.id === requestId);
+    if (!request) return;
+
+    try {
+      await api.deleteProjectRequest(currentProject.id, parseInt(requestId));
+      
+      // Remove from local state
+      setRequests(prev => prev.filter(r => r.id !== requestId));
+      setResponses(prev => {
+        const updated = { ...prev };
+        delete updated[requestId];
+        return updated;
+      });
+      
+      // If deleted request was selected, select another or clear selection
+      if (selectedId === requestId) {
+        const remainingRequests = requests.filter(r => r.id !== requestId);
+        if (remainingRequests.length > 0) {
+          setSelectedId(remainingRequests[0].id);
+        } else {
+          setSelectedId(null);
+        }
+      }
+      
+      toast.success("Request deleted", {
+        description: `${request.method} ${request.path}`,
+      });
+      
+      // Reload requests to refresh pagination counts
+      loadRequests(true, currentPage);
+    } catch (error) {
+      console.error("Failed to delete request:", error);
+      toast.error("Failed to delete request", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
   const handleClearAll = async () => {
     if (!currentProject) return;
     
@@ -730,6 +771,7 @@ export const HomeTab = () => {
                   userHasSelected.current = true;
                   setSelectedId(id);
                 }}
+                onDelete={handleDeleteRequest}
                 onExcludeHost={(host) => {
                   const hostLower = host.toLowerCase();
                   if (!filters.excludedHosts.includes(hostLower)) {
