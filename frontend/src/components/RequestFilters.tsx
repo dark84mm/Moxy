@@ -75,10 +75,41 @@ export const RequestFilters = ({
     }
   };
 
+  const parseHostFromInput = (input: string): string | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    
+    try {
+      // Try to parse as URL
+      let url: URL;
+      // If it doesn't start with http:// or https://, add https://
+      if (!trimmed.match(/^https?:\/\//i)) {
+        url = new URL(`https://${trimmed}`);
+      } else {
+        url = new URL(trimmed);
+      }
+      
+      // Extract hostname and port
+      const hostname = url.hostname;
+      const port = url.port;
+      
+      // Combine hostname and port if port is not default
+      if (port && port !== '80' && port !== '443') {
+        return `${hostname}:${port}`.toLowerCase();
+      }
+      return hostname.toLowerCase();
+    } catch {
+      // If URL parsing fails, treat as plain hostname
+      // Remove leading/trailing slashes and protocol if present
+      let host = trimmed.replace(/^https?:\/\//i, '').replace(/^\/+|\/+$/g, '').split('/')[0];
+      return host.toLowerCase();
+    }
+  };
+
   const handleAddExcludedHost = () => {
-    const host = excludedHostInput.trim().toLowerCase();
-    if (host && !filters.excludedHosts.includes(host)) {
-      handleFilterChange("excludedHosts", [...filters.excludedHosts, host]);
+    const parsedHost = parseHostFromInput(excludedHostInput);
+    if (parsedHost && !filters.excludedHosts.includes(parsedHost)) {
+      handleFilterChange("excludedHosts", [...filters.excludedHosts, parsedHost]);
       setExcludedHostInput("");
     }
   };
@@ -91,9 +122,9 @@ export const RequestFilters = ({
   };
 
   const handleAddIncludedHost = () => {
-    const host = includedHostInput.trim().toLowerCase();
-    if (host && !filters.includedHosts.includes(host)) {
-      handleFilterChange("includedHosts", [...filters.includedHosts, host]);
+    const parsedHost = parseHostFromInput(includedHostInput);
+    if (parsedHost && !filters.includedHosts.includes(parsedHost)) {
+      handleFilterChange("includedHosts", [...filters.includedHosts, parsedHost]);
       setIncludedHostInput("");
     }
   };

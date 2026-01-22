@@ -794,11 +794,32 @@ export const HomeTab = () => {
                   }
                 }}
                 onIncludeHost={(host) => {
-                  const hostLower = host.toLowerCase();
-                  if (!filters.includedHosts.includes(hostLower)) {
+                  // Parse host from URL if needed
+                  let parsedHost: string;
+                  try {
+                    // Try to parse as URL
+                    let url: URL;
+                    if (!host.match(/^https?:\/\//i)) {
+                      url = new URL(`https://${host}`);
+                    } else {
+                      url = new URL(host);
+                    }
+                    const hostname = url.hostname;
+                    const port = url.port;
+                    if (port && port !== '80' && port !== '443') {
+                      parsedHost = `${hostname}:${port}`.toLowerCase();
+                    } else {
+                      parsedHost = hostname.toLowerCase();
+                    }
+                  } catch {
+                    // If URL parsing fails, use as-is
+                    parsedHost = host.toLowerCase();
+                  }
+                  
+                  if (!filters.includedHosts.includes(parsedHost)) {
                     updateFilters({
                       ...filters,
-                      includedHosts: [...filters.includedHosts, hostLower],
+                      includedHosts: [...filters.includedHosts, parsedHost],
                     });
                   }
                 }}
