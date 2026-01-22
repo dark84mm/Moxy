@@ -235,6 +235,21 @@ def init_project_db(project_name):
             )
         ''')
         
+        # Create filters table for storing request filters
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS filters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                hide_static_assets INTEGER DEFAULT 0,
+                excluded_hosts TEXT DEFAULT '[]',
+                included_hosts TEXT DEFAULT '[]',
+                methods TEXT DEFAULT '[]',
+                status_codes TEXT DEFAULT '[]',
+                text_search TEXT DEFAULT '',
+                text_search_scope TEXT DEFAULT 'both',
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        
         # Create resender_versions table for storing request/response pairs
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS resender_versions (
@@ -380,8 +395,8 @@ def add_request_to_project(project_id, method, url, headers=None, body=None,
         return cursor.lastrowid
 
 
-def get_project_requests(project_id, limit=None):
-    """Get HTTP requests from a project's database"""
+def get_project_requests(project_id, limit=None, offset=None):
+    """Get HTTP requests from a project's database with pagination"""
     project = get_project_by_id(project_id)
     if not project:
         return []
@@ -394,11 +409,32 @@ def get_project_requests(project_id, limit=None):
     with get_db(db_path) as conn:
         cursor = conn.cursor()
         if limit is not None:
-            cursor.execute('SELECT * FROM requests ORDER BY timestamp DESC LIMIT ?', (limit,))
+            if offset is not None:
+                cursor.execute('SELECT * FROM requests ORDER BY timestamp DESC LIMIT ? OFFSET ?', (limit, offset))
+            else:
+                cursor.execute('SELECT * FROM requests ORDER BY timestamp DESC LIMIT ?', (limit,))
         else:
             cursor.execute('SELECT * FROM requests ORDER BY timestamp DESC')
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
+
+
+def get_project_requests_count(project_id):
+    """Get total count of requests for a project"""
+    project = get_project_by_id(project_id)
+    if not project:
+        return 0
+    
+    db_path = get_project_db_path(project['name'])
+    
+    if not os.path.exists(db_path):
+        return 0
+    
+    with get_db(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) as count FROM requests')
+        row = cursor.fetchone()
+        return row['count'] if row else 0
 
 
 def get_project_request(project_id, request_id):
@@ -844,6 +880,99 @@ def add_agent_message(project_id, chat_id, role, content, step_type=None, tool_n
         ''', (now, chat_id))
         
         return message_id
+
+
+def save_project_filters(project_id, filters):
+    """Save request filters for a project"""
+    project = get_project_by_id(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    
+    db_path = get_project_db_path(project['name'])
+    now = datetime.utcnow().isoformat()
+    
+    import json
+    with get_db(db_path) as conn:
+        cursor = conn.cursor()
+        # Check if filters row exists
+        cursor.execute('SELECT id FROM filters LIMIT 1')
+        existing = cursor.fetchone()
+        
+        excluded_hosts_json = json.dumps(filters.get('excludedHosts', []))
+        included_hosts_json = json.dumps(filters.get('includedHosts', []))
+        methods_json = json.dumps(filters.get('methods', []))
+        status_codes_json = json.dumps(filters.get('statusCodes', []))
+        
+        if existing:
+            # Update existing row
+            cursor.execute('''
+                UPDATE filters SET
+                    hide_static_assets = ?,
+                    excluded_hosts = ?,
+                    included_hosts = ?,
+                    methods = ?,
+                    status_codes = ?,
+                    text_search = ?,
+                    text_search_scope = ?,
+                    updated_at = ?
+            ''', (
+                int(filters.get('hideStaticAssets', False)),
+                excluded_hosts_json,
+                included_hosts_json,
+                methods_json,
+                status_codes_json,
+                filters.get('textSearch', ''),
+                filters.get('textSearchScope', 'both'),
+                now
+            ))
+        else:
+            # Insert new row
+            cursor.execute('''
+                INSERT INTO filters (
+                    hide_static_assets, excluded_hosts, included_hosts,
+                    methods, status_codes, text_search, text_search_scope, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                int(filters.get('hideStaticAssets', False)),
+                excluded_hosts_json,
+                included_hosts_json,
+                methods_json,
+                status_codes_json,
+                filters.get('textSearch', ''),
+                filters.get('textSearchScope', 'both'),
+                now
+            ))
+
+
+def get_project_filters(project_id):
+    """Get request filters for a project"""
+    project = get_project_by_id(project_id)
+    if not project:
+        return None
+    
+    db_path = get_project_db_path(project['name'])
+    if not os.path.exists(db_path):
+        return None
+    
+    import json
+    with get_db(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM filters LIMIT 1')
+        row = cursor.fetchone()
+        
+        if not row:
+            return None
+        
+        filters_dict = dict(row)
+        return {
+            'hideStaticAssets': bool(filters_dict.get('hide_static_assets', False)),
+            'excludedHosts': json.loads(filters_dict.get('excluded_hosts', '[]')),
+            'includedHosts': json.loads(filters_dict.get('included_hosts', '[]')),
+            'methods': json.loads(filters_dict.get('methods', '[]')),
+            'statusCodes': json.loads(filters_dict.get('status_codes', '[]')),
+            'textSearch': filters_dict.get('text_search', ''),
+            'textSearchScope': filters_dict.get('text_search_scope', 'both')
+        }
 
 
 def get_agent_messages(project_id, chat_id):

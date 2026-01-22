@@ -173,9 +173,69 @@ class ApiClient {
   }
 
   // Request endpoints (per project)
-  async getProjectRequests(projectId: number, limit?: number): Promise<HttpRequest[]> {
-    const params = limit ? `?limit=${limit}` : '';
-    return this.request<HttpRequest[]>(`/api/projects/${projectId}/requests${params}`);
+  async getProjectRequests(projectId: number, page: number = 1, limit: number = 800): Promise<{
+    requests: HttpRequest[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  }> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    return this.request<{
+      requests: HttpRequest[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_prev: boolean;
+      };
+    }>(`/api/projects/${projectId}/requests?${params}`);
+  }
+
+  async getProjectFilters(projectId: number): Promise<{
+    hideStaticAssets: boolean;
+    excludedHosts: string[];
+    includedHosts: string[];
+    methods: string[];
+    statusCodes: string[];
+    textSearch: string;
+    textSearchScope: 'both' | 'request' | 'response';
+  }> {
+    return this.request<{
+      hideStaticAssets: boolean;
+      excludedHosts: string[];
+      includedHosts: string[];
+      methods: string[];
+      statusCodes: string[];
+      textSearch: string;
+      textSearchScope: 'both' | 'request' | 'response';
+    }>(`/api/projects/${projectId}/requests/filters`, {
+      method: 'GET',
+    });
+  }
+
+  async saveProjectFilters(projectId: number, filters: {
+    hideStaticAssets: boolean;
+    excludedHosts: string[];
+    includedHosts: string[];
+    methods: string[];
+    statusCodes: string[];
+    textSearch: string;
+    textSearchScope: 'both' | 'request' | 'response';
+  }): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/projects/${projectId}/requests/filters`, {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    });
   }
 
   async getProjectRequest(projectId: number, requestId: number): Promise<HttpRequest> {

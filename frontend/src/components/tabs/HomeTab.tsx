@@ -9,7 +9,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Inbox, Globe, Shield, Filter, Trash2, Send, AlertCircle, X, Copy, Check, Eye, Code, Edit2 } from "lucide-react";
+import { Inbox, Globe, Shield, Filter, Trash2, Send, AlertCircle, X, Copy, Check, Eye, Code, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, HttpRequest as BackendRequest, Project } from "@/lib/api";
 import { transformRequest, transformResponse, generateCurl } from "@/lib/requestTransform";
 import { toast } from "sonner";
@@ -45,6 +45,10 @@ export const HomeTab = () => {
   const [isDocker, setIsDocker] = useState(false);
   const [interceptEnabled, setInterceptEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const pageLimit = 800;
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [interceptedFlowIds, setInterceptedFlowIds] = useState<string[]>([]);
   const [editingInterceptedFlow, setEditingInterceptedFlow] = useState<string | null>(null);
@@ -380,26 +384,94 @@ export const HomeTab = () => {
     }
   };
 
+  // Load filters when project changes
+  const loadFilters = async () => {
+    if (!currentProject) return;
+    
+    try {
+      const savedFilters = await api.getProjectFilters(currentProject.id);
+      setFilters(savedFilters);
+    } catch (error) {
+      console.error("Failed to load filters:", error);
+      // Keep default filters on error
+    }
+  };
+
+  // Save filters with debouncing
+  const saveFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveFiltersToDb = async (filtersToSave: RequestFiltersState) => {
+    if (!currentProject) return;
+    
+    // Clear existing timeout
+    if (saveFiltersTimeoutRef.current) {
+      clearTimeout(saveFiltersTimeoutRef.current);
+    }
+    
+    // Debounce: save after 500ms of no changes
+    saveFiltersTimeoutRef.current = setTimeout(async () => {
+      try {
+        await api.saveProjectFilters(currentProject.id, filtersToSave);
+      } catch (error) {
+        console.error("Failed to save filters:", error);
+      }
+    }, 500);
+  };
+
+  // Wrapper function to update filters and save them
+  const updateFilters = (newFilters: RequestFiltersState | ((prev: RequestFiltersState) => RequestFiltersState)) => {
+    setFilters((prev) => {
+      const updated = typeof newFilters === 'function' ? newFilters(prev) : newFilters;
+      saveFiltersToDb(updated);
+      return updated;
+    });
+  };
+
   // Load requests when project changes
   useEffect(() => {
     if (currentProject) {
       isInitialLoad.current = true;
-      loadRequests().then(() => {
+      setCurrentPage(1); // Reset to page 1 when project changes
+      loadFilters(); // Load saved filters
+      loadRequests(false, 1).then(() => {
         // Mark initial load as complete after first load
         isInitialLoad.current = false;
       });
-      // Poll for new requests every 2 seconds
-      const interval = setInterval(() => {
-        loadRequests(true); // Silent refresh
-      }, 2000);
-      return () => clearInterval(interval);
     } else {
       setRequests([]);
       setResponses({});
       setSelectedId(null);
+      setCurrentPage(1);
+      setTotalPages(1);
+      setTotalRequests(0);
+      setFilters({
+        hideStaticAssets: false,
+        excludedHosts: [],
+        includedHosts: [],
+        methods: [],
+        statusCodes: [],
+        textSearch: '',
+        textSearchScope: 'both',
+      });
       isInitialLoad.current = true;
     }
   }, [currentProject]);
+
+  // Poll for new requests every 2 seconds (only refresh current page)
+  useEffect(() => {
+    if (!currentProject) return;
+    
+    const interval = setInterval(() => {
+      loadRequests(true, currentPage); // Silent refresh of current page
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [currentProject, currentPage]);
+
+  // Reload when page changes
+  useEffect(() => {
+    if (currentProject && currentPage > 0) {
+      loadRequests(false, currentPage);
+    }
+  }, [currentPage, currentProject]);
 
   const loadCurrentProject = async () => {
     try {
@@ -420,7 +492,7 @@ export const HomeTab = () => {
     }
   };
 
-  const loadRequests = async (silent = false) => {
+  const loadRequests = async (silent = false, page: number = currentPage) => {
     if (!currentProject) return;
     
     if (!silent) {
@@ -428,7 +500,13 @@ export const HomeTab = () => {
     }
     
     try {
-      const backendRequests = await api.getProjectRequests(currentProject.id);
+      const response = await api.getProjectRequests(currentProject.id, page, pageLimit);
+      const backendRequests = response.requests;
+
+      // Update pagination state
+      setCurrentPage(response.pagination.page);
+      setTotalPages(response.pagination.total_pages);
+      setTotalRequests(response.pagination.total);
 
       // Transform requests
       const transformedRequests = backendRequests.map(transformRequest);
@@ -582,13 +660,44 @@ export const HomeTab = () => {
         <ResizablePanel defaultSize={35} minSize={25}>
           <div className="h-full flex flex-col">
             <div className="px-4 py-3 border-b bg-muted/30">
-              <h2 className="text-sm font-semibold">HTTP History</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {currentProject 
-                  ? `${filteredRequests.length} of ${requests.length} requests${requests.length === 0 ? '' : ''}`
-                  : 'No project selected - Go to Projects tab to create or select a project'
-                }
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">HTTP History</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {currentProject 
+                      ? totalRequests > 0
+                        ? `Showing ${filteredRequests.length} of ${requests.length} on page ${currentPage} (${totalRequests} total)`
+                        : 'No requests captured yet'
+                      : 'No project selected - Go to Projects tab to create or select a project'
+                    }
+                  </p>
+                </div>
+                {currentProject && totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="h-7 px-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="h-7 px-2"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             {isLoading && requests.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -616,6 +725,7 @@ export const HomeTab = () => {
                 requests={filteredRequests} 
                 selectedId={selectedId} 
                 interceptedFlowIds={interceptedFlowIds}
+                startNumber={(currentPage - 1) * pageLimit + 1}
                 onSelect={(id) => {
                   userHasSelected.current = true;
                   setSelectedId(id);
@@ -623,7 +733,7 @@ export const HomeTab = () => {
                 onExcludeHost={(host) => {
                   const hostLower = host.toLowerCase();
                   if (!filters.excludedHosts.includes(hostLower)) {
-                    setFilters({
+                    updateFilters({
                       ...filters,
                       excludedHosts: [...filters.excludedHosts, hostLower],
                     });
@@ -632,7 +742,7 @@ export const HomeTab = () => {
                 onIncludeHost={(host) => {
                   const hostLower = host.toLowerCase();
                   if (!filters.includedHosts.includes(hostLower)) {
-                    setFilters({
+                    updateFilters({
                       ...filters,
                       includedHosts: [...filters.includedHosts, hostLower],
                     });
@@ -845,7 +955,7 @@ export const HomeTab = () => {
         open={isFilterDialogOpen}
         onOpenChange={setIsFilterDialogOpen}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={updateFilters}
       />
     </div>
   );

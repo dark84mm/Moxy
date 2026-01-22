@@ -6,16 +6,36 @@ requests_bp = Blueprint('requests', __name__)
 
 @requests_bp.route('', methods=['GET'])
 def get_project_requests(project_id):
-    """Get all requests for a specific project"""
+    """Get requests for a specific project with pagination"""
     try:
         # Verify project exists
         project = db.get_project_by_id(project_id)
         if not project:
             return jsonify({'error': 'Project not found'}), 404
         
-        limit = request.args.get('limit', type=int)  # No default limit
-        requests = db.get_project_requests(project_id, limit)
-        return jsonify(requests), 200
+        # Get pagination parameters
+        limit = request.args.get('limit', type=int, default=800)  # Default 800 per page
+        page = request.args.get('page', type=int, default=1)  # Default page 1
+        offset = (page - 1) * limit if page > 0 else 0
+        
+        # Get requests with pagination
+        requests = db.get_project_requests(project_id, limit=limit, offset=offset)
+        
+        # Get total count for pagination info
+        total_count = db.get_project_requests_count(project_id)
+        total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
+        
+        return jsonify({
+            'requests': requests,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'total_pages': total_pages,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -104,5 +124,52 @@ def clear_project_requests(project_id):
         db.clear_project_requests(project_id)
         
         return jsonify({'message': 'All requests cleared successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@requests_bp.route('/filters', methods=['GET'])
+def get_project_filters(project_id):
+    """Get request filters for a project"""
+    try:
+        # Verify project exists
+        project = db.get_project_by_id(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        filters = db.get_project_filters(project_id)
+        if filters is None:
+            # Return default filters if none exist
+            return jsonify({
+                'hideStaticAssets': False,
+                'excludedHosts': [],
+                'includedHosts': [],
+                'methods': [],
+                'statusCodes': [],
+                'textSearch': '',
+                'textSearchScope': 'both'
+            }), 200
+        
+        return jsonify(filters), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@requests_bp.route('/filters', methods=['POST'])
+def save_project_filters(project_id):
+    """Save request filters for a project"""
+    try:
+        # Verify project exists
+        project = db.get_project_by_id(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No filter data provided'}), 400
+        
+        db.save_project_filters(project_id, data)
+        
+        return jsonify({'message': 'Filters saved successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
