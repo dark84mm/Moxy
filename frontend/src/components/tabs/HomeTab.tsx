@@ -9,6 +9,16 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Inbox, Globe, Shield, Filter, Trash2, Send, AlertCircle, X, Copy, Check, Eye, Code, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, HttpRequest as BackendRequest, Project } from "@/lib/api";
 import { transformRequest, transformResponse, generateCurl } from "@/lib/requestTransform";
@@ -55,6 +65,7 @@ export const HomeTab = () => {
   const [editedRequests, setEditedRequests] = useState<Record<string, string>>({});
   const [requestCopied, setRequestCopied] = useState(false);
   const [showRawRequest, setShowRawRequest] = useState(false);
+  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
   const [filters, setFilters] = useState<RequestFiltersState>({
     hideStaticAssets: false,
     excludedHosts: [],
@@ -191,10 +202,6 @@ export const HomeTab = () => {
 
   const handleClearAll = async () => {
     if (!currentProject) return;
-    
-    if (!confirm(`Are you sure you want to delete all ${requests.length} requests? This action cannot be undone.`)) {
-      return;
-    }
 
     try {
       setIsLoading(true);
@@ -204,10 +211,15 @@ export const HomeTab = () => {
       setRequests([]);
       setResponses({});
       setSelectedId(null);
+      setTotalRequests(0);
+      setTotalPages(1);
+      setCurrentPage(1);
       
       toast.success("All requests cleared", {
-        description: `Deleted ${requests.length} request(s)`,
+        description: `Deleted ${totalRequests} request(s)`,
       });
+      
+      setIsClearAllDialogOpen(false);
     } catch (error) {
       console.error("Failed to clear requests:", error);
       toast.error("Failed to clear requests", {
@@ -687,8 +699,8 @@ export const HomeTab = () => {
           size="sm"
           variant="outline"
           className="gap-2 border-red-300 bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800"
-          onClick={handleClearAll}
-          disabled={!currentProject || requests.length === 0 || isLoading}
+          onClick={() => setIsClearAllDialogOpen(true)}
+          disabled={!currentProject || totalRequests === 0 || isLoading}
         >
           <Trash2 className="w-4 h-4" />
           Clear All
@@ -999,6 +1011,26 @@ export const HomeTab = () => {
         filters={filters}
         onFiltersChange={updateFilters}
       />
+
+      <AlertDialog open={isClearAllDialogOpen} onOpenChange={setIsClearAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Requests</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all {totalRequests} request{totalRequests !== 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
